@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>تطبيق شات Firebase (Modular SDK)</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
-    #loginDiv, #chatDiv { max-width: 400px; margin: 50px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    #chatDiv { display: none; }
-    input, button, textarea { width: 100%; margin: 8px 0; padding: 10px; font-size: 16px; }
-    #messages { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 4px; background: #fafafa; }
-    .message { margin-bottom: 10px; padding: 6px 10px; border-radius: 6px; background: #e0e0e0; }
-    .message.self { background: #a8dadc; text-align: right; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>شات مع تسجيل دخول ثابت</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+  #loginDiv, #chatDiv { max-width: 400px; margin: 50px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  #chatDiv { display: none; }
+  input, button, textarea { width: 100%; margin: 8px 0; padding: 10px; font-size: 16px; }
+  #messages { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 4px; background: #fafafa; }
+  .message { margin-bottom: 10px; padding: 6px 10px; border-radius: 6px; background: #e0e0e0; }
+  .message.self { background: #a8dadc; text-align: right; }
+</style>
 </head>
 <body>
 
 <div id="loginDiv">
   <h2>تسجيل الدخول</h2>
-  <input type="email" id="email" placeholder="البريد الإلكتروني" />
+  <input type="text" id="username" placeholder="اسم المستخدم" />
   <input type="password" id="password" placeholder="كلمة المرور" />
   <button id="loginBtn">دخول</button>
   <p id="loginError" style="color:red;"></p>
@@ -33,12 +33,9 @@
 </div>
 
 <script type="module">
-  // استيراد Firebase SDK modular
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
   import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-  // إعدادات Firebase الخاصة بك
   const firebaseConfig = {
     apiKey: "AIzaSyDMAU5bEP_e542i_Kt23kXj3ew8vm7RRnQ",
     authDomain: "holachat-47571.firebaseapp.com",
@@ -49,16 +46,22 @@
     measurementId: "G-WSRZEVXWRK"
   };
 
-  // تهيئة Firebase
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // العناصر في الصفحة
+  // يوزرات وباسوردات ثابتة
+  const validUsers = {
+    "admin": "1234",
+    "user1": "pass1",
+    "user2": "pass2"
+  };
+
+  let currentUser = null;
+
   const loginDiv = document.getElementById("loginDiv");
   const chatDiv = document.getElementById("chatDiv");
   const loginError = document.getElementById("loginError");
-  const emailInput = document.getElementById("email");
+  const usernameInput = document.getElementById("username");
   const passwordInput = document.getElementById("password");
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
@@ -66,56 +69,36 @@
   const messageInput = document.getElementById("messageInput");
   const sendBtn = document.getElementById("sendBtn");
 
-  // تابع تحديث حالة تسجيل الدخول
-  onAuthStateChanged(auth, user => {
-    if(user){
+  loginBtn.addEventListener("click", () => {
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if(validUsers[username] && validUsers[username] === password){
+      currentUser = username;
       loginDiv.style.display = "none";
       chatDiv.style.display = "block";
+      loginError.textContent = "";
       loadMessages();
     } else {
-      loginDiv.style.display = "block";
-      chatDiv.style.display = "none";
-      messagesDiv.innerHTML = "";
+      loginError.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة";
     }
   });
 
-  // تسجيل الدخول أو إنشاء حساب جديد تلقائياً
-  loginBtn.addEventListener("click", async () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-    loginError.textContent = "";
-    if(email && password){
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-      } catch(error){
-        if(error.code === 'auth/user-not-found'){
-          try {
-            await createUserWithEmailAndPassword(auth, email, password);
-          } catch(err){
-            loginError.textContent = err.message;
-          }
-        } else {
-          loginError.textContent = error.message;
-        }
-      }
-    } else {
-      loginError.textContent = "من فضلك املأ جميع الحقول";
-    }
-  });
-
-  // تسجيل الخروج
   logoutBtn.addEventListener("click", () => {
-    signOut(auth);
+    currentUser = null;
+    loginDiv.style.display = "block";
+    chatDiv.style.display = "none";
+    messagesDiv.innerHTML = "";
+    usernameInput.value = "";
+    passwordInput.value = "";
   });
 
-  // إرسال رسالة نصية
   sendBtn.addEventListener("click", async () => {
     const text = messageInput.value.trim();
-    if(text && auth.currentUser){
+    if(text && currentUser){
       try {
         await addDoc(collection(db, "messages"), {
-          uid: auth.currentUser.uid,
-          email: auth.currentUser.email,
+          username: currentUser,
           text: text,
           timestamp: serverTimestamp()
         });
@@ -126,7 +109,6 @@
     }
   });
 
-  // تحميل وعرض الرسائل مع تحديث مباشر
   function loadMessages(){
     const q = query(collection(db, "messages"), orderBy("timestamp"), limit(50));
     onSnapshot(q, snapshot => {
@@ -135,8 +117,8 @@
         const msg = doc.data();
         const div = document.createElement("div");
         div.classList.add("message");
-        if(msg.uid === auth.currentUser.uid) div.classList.add("self");
-        div.textContent = msg.email + ": " + msg.text;
+        if(msg.username === currentUser) div.classList.add("self");
+        div.textContent = msg.username + ": " + msg.text;
         messagesDiv.appendChild(div);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
       });
