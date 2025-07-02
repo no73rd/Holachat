@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>تسجيل الدخول - تطبيق التحويش</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 0; }
+  .container { max-width: 400px; margin: 80px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  input { width: 100%; padding: 12px; margin: 10px 0; font-size: 16px; box-sizing: border-box; }
+  button { width: 100%; padding: 12px; background: #ff4081; border: none; color: white; font-size: 18px; cursor: pointer; border-radius: 4px; }
+  button:hover { background: #e91e63; }
+  .error { color: red; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>تسجيل الدخول</h2>
+  <input type="text" id="username" placeholder="اسم المستخدم" />
+  <input type="password" id="password" placeholder="كلمة المرور" />
+  <button id="loginBtn">دخول</button>
+  <p id="errorMsg" class="error"></p>
+</div>
+
+<script>
+  const validUsername = "user";
+  const validPassword = "1234";
+
+  const loginBtn = document.getElementById("loginBtn");
+  const errorMsg = document.getElementById("errorMsg");
+
+  loginBtn.addEventListener("click", () => {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if(username === validUsername && password === validPassword){
+      localStorage.setItem("loggedIn", "true");
+      window.location.href = "app.html";
+    } else {
+      errorMsg.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة";
+    }
+  });
+
+  // إذا المستخدم مسجل دخوله مسبقا، نوجهه مباشرة لتطبيق الشات
+  if(localStorage.getItem("loggedIn") === "true"){
+    window.location.href = "app.html";
+  }
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>تطبيق التحويش - شات ولعبة</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; background: #fff; display: flex; flex-direction: column; height: 100vh; }
+  header { background: #ff4081; color: white; padding: 16px; text-align: center; font-size: 22px; }
+  nav { display: flex; background: #f3f3f3; }
+  nav button {
+    flex: 1; padding: 14px; border: none; background: #f3f3f3; font-size: 18px; cursor: pointer; transition: background 0.3s;
+  }
+  nav button.active { background: #ff4081; color: white; }
+  section { flex: 1; overflow-y: auto; padding: 16px; }
+  #logoutBtn { position: fixed; top: 10px; left: 10px; background: #444; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<button id="logoutBtn">تسجيل خروج</button>
+<header>تطبيق التحويش</header>
+<nav>
+  <button id="chatTab" class="active">الدردشة</button>
+  <button id="gameTab">لعبة الأسئلة</button>
+</nav>
+
+<section>
+  <div id="chatSection">
+    <!-- محتوى الدردشة هنا -->
+  </div>
+  <div id="gameSection" style="display:none;">
+    <!-- محتوى اللعبة هنا -->
+  </div>
+</section>
+
+<script src="chat.js"></script>
+<script src="game.js"></script>
+<script>
+  const chatTab = document.getElementById("chatTab");
+  const gameTab = document.getElementById("gameTab");
+  const chatSection = document.getElementById("chatSection");
+  const gameSection = document.getElementById("gameSection");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  chatTab.addEventListener("click", () => {
+    chatTab.classList.add("active");
+    gameTab.classList.remove("active");
+    chatSection.style.display = "block";
+    gameSection.style.display = "none";
+  });
+
+  gameTab.addEventListener("click", () => {
+    gameTab.classList.add("active");
+    chatTab.classList.remove("active");
+    gameSection.style.display = "block";
+    chatSection.style.display = "none";
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("loggedIn");
+    window.location.href = "index.html";
+  });
+</script>
+
+</body>
+</html>
+const chatSection = document.getElementById("chatSection");
+
+chatSection.innerHTML = `
+  <div style="display:flex; flex-direction: column; height: 100%;">
+    <div id="messages" style="flex:1; overflow-y:auto; border: 1px solid #ddd; padding: 10px; border-radius: 6px; background:#fafafa;"></div>
+    <div style="margin-top: 10px; display:flex; gap:10px;">
+      <input type="text" id="messageInput" placeholder="اكتب رسالة..." style="flex:1; padding:8px; font-size:16px;"/>
+      <input type="file" id="imageInput" accept="image/*" style="display:none;"/>
+      <button id="sendBtn" style="padding: 8px 16px; background:#ff4081; color:white; border:none; border-radius:4px; cursor:pointer;">إرسال</button>
+      <button id="imageBtn" style="padding: 8px 12px; background:#2196f3; color:white; border:none; border-radius:4px; cursor:pointer;">📷</button>
+    </div>
+  </div>
+`;
+
+const messagesDiv = document.getElementById("messages");
+const messageInput = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
+const imageBtn = document.getElementById("imageBtn");
+const imageInput = document.getElementById("imageInput");
+
+let messages = JSON.parse(localStorage.getItem("messages") || "[]");
+
+function saveMessages(){
+  localStorage.setItem("messages", JSON.stringify(messages));
+}
+
+function renderMessages(){
+  messagesDiv.innerHTML = "";
+  messages.forEach((msg, index) => {
+    const div = document.createElement("div");
+    div.style.borderBottom = "1px solid #eee";
+    div.style.padding = "6px 4px";
+    div.style.position = "relative";
+
+    if(msg.type === "text"){
+      div.textContent = msg.content;
+    } else if(msg.type === "image"){
+      const img = document.createElement("img");
+      img.src = msg.content;
+      img.style.maxWidth = "70%";
+      img.style.borderRadius = "6px";
+      div.appendChild(img);
+    }
+
+    // زر الحذف
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "حذف";
+    delBtn.style.position = "absolute";
+    delBtn.style.top = "4px";
+    delBtn.style.left = "4px";
+    delBtn.style.fontSize = "12px";
+    delBtn.style.background = "#e91e63";
+    delBtn.style.color = "white";
+    delBtn.style.border = "none";
+    delBtn.style.padding = "2px 6px";
+    delBtn.style.borderRadius = "4px";
+    delBtn.style.cursor = "pointer";
+    delBtn.addEventListener("click", () => {
+      messages.splice(index,1);
+      saveMessages();
+      renderMessages();
+    });
+    div.appendChild(delBtn);
+
+    messagesDiv.appendChild(div);
+  });
+
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+sendBtn.addEventListener("click", () => {
+  const text = messageInput.value.trim();
+  if(!text) return;
+  messages.push({type:"text", content:text});
+  saveMessages();
+  renderMessages();
+  messageInput.value = "";
+});
+
+imageBtn.addEventListener("click", () => {
+  imageInput.click();
+});
+
+imageInput.addEventListener("change", () => {
+  const file = imageInput.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    messages.push({type:"image", content: reader.result});
+    saveMessages();
+    renderMessages();
+  };
+  reader.readAsDataURL(file);
+  imageInput.value = "";
+});
+
+renderMessages();
+const gameSection = document.getElementById("gameSection");
+
+const questions = [
+  {q: "ما هو لون السماء؟", a: "أزرق"},
+  {q: "ما هي عاصمة مصر؟", a: "القاهرة"},
+  {q: "كم عدد أيام الأسبوع؟", a: "7"},
+  {q: "ما هو أكبر كوكب في المجموعة الشمسية؟", a: "المشتري"},
+  {q: "ما هو الحيوان الأسرع في العالم؟", a: "الفهد"}
+];
+
+let currentQuestionIndex = parseInt(localStorage.getItem("currentQuestionIndex") || "0");
+let score = parseInt(localStorage.getItem("score") || "0");
+
+function saveGameState(){
+  localStorage.setItem("currentQuestionIndex", currentQuestionIndex);
+  localStorage.setItem("score", score);
+}
+
+function renderGame(){
+  gameSection.innerHTML = `
+    <h3>السؤال ${currentQuestionIndex+1} من ${questions.length}</h3>
+    <p style="font-size:18px;">${questions[currentQuestionIndex].q}</p>
+    <input type="text" id="answerInput" placeholder="اكتب إجابتك هنا" style="width: 100%; padding: 8px; font-size:16px;"/>
+    <button id="submitAnswerBtn" style="margin-top: 10px; padding: 10px 16px; background:#ff4081; color:white; border:none; border-radius:6px; cursor:pointer;">أرسل الإجابة</button>
+    <p id="feedback" style="margin-top:10px; font-weight: bold;"></p>
+    <p>النقاط: <span id="scoreDisplay">${score}</span></p>
+  `;
+
+  const answerInput = document.getElementById("answerInput");
+  const submitAnswerBtn = document.getElementById("submitAnswerBtn");
+  const feedback = document.getElementById("feedback");
+  const scoreDisplay = document.getElementById("scoreDisplay");
+
+  submitAnswerBtn.addEventListener("click", () => {
+    const userAnswer = answerInput.value.trim();
+    if(!userAnswer){
+      feedback.textContent = "يرجى كتابة إجابة.";
+      return;
+    }
+
+    if(userAnswer === questions[currentQuestionIndex].a){
+      score++;
+      feedback.textContent = "إجابة صحيحة! 🎉";
+    } else {
+      feedback.textContent = "إجابة خاطئة، حاول مرة أخرى.";
+    }
+    scoreDisplay.textContent = score;
+    saveGameState();
+
+    currentQuestionIndex++;
+    if(currentQuestionIndex >= questions.length){
+      gameSection.innerHTML = `
+        <h2>انتهت اللعبة!</h2>
+        <p>نقاطك النهائية: ${score}</p>
+        <button id="restartBtn" style="padding: 12px 20px; background:#2196f3; color:white; border:none; border-radius:6px; cursor:pointer;">إعادة اللعبة</button>
+      `;
+      document.getElementById("restartBtn").addEventListener("click", () => {
+        currentQuestionIndex = 0;
+        score = 0;
+        saveGameState();
+        renderGame();
+      });
+    } else {
+      answerInput.value = "";
+      setTimeout(renderGame, 1500);
+    }
+  });
+}
+
+renderGame();
